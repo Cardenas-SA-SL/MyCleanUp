@@ -65,19 +65,21 @@ struct DashboardView: View {
         HStack(spacing: 16) {
             statCard(title: "Disco", icon: "internaldrive.fill", color: .blue,
                      value: stats.disk.map { ByteFormat.string($0.free) } ?? "N/D",
-                     caption: stats.disk.map { "libres de \(ByteFormat.string($0.total))" } ?? "Capacidad no disponible")
+                     caption: stats.disk.map { "libres de \(ByteFormat.string($0.total))" } ?? "Capacidad no disponible",
+                     valueColor: diskValueColor)
             memoryCard
             statCard(title: "Papelera", icon: "trash.fill", color: .orange,
                      value: ByteFormat.string(trash.size), caption: pluralized(trash.count, "elemento", "elementos"))
         }.fixedSize(horizontal: false, vertical: true)
     }
 
-    private func statCard(title: String, icon: String, color: Color, value: String, caption: String) -> some View {
+    private func statCard(title: String, icon: String, color: Color, value: String,
+                          caption: String, valueColor: Color = .primary) -> some View {
         HStack(alignment: .top, spacing: 13) {
             TintedIcon(symbol: icon, color: color)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.headline)
-                Text(value).font(.title2.bold()).monospacedDigit()
+                Text(value).font(.title2.bold()).foregroundStyle(valueColor).monospacedDigit()
                 Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
@@ -89,9 +91,10 @@ struct DashboardView: View {
             TintedIcon(symbol: "memorychip.fill", color: .green)
             VStack(alignment: .leading, spacing: 5) {
                 Text("Memoria").font(.headline)
-                Text(stats.memory.map { ByteFormat.string($0.used) } ?? "N/D").font(.title2.bold()).monospacedDigit()
+                Text(stats.memory.map { ByteFormat.string($0.used) } ?? "N/D")
+                    .font(.title2.bold()).foregroundStyle(memoryValueColor).monospacedDigit()
                 if let memory = stats.memory {
-                    ProgressView(value: memory.fraction).tint(memory.fraction > 0.85 ? .orange : .green)
+                    ProgressView(value: memory.fraction).tint(adaptiveHealthColor(memoryHealth(memory)))
                     HStack(spacing: 8) {
                         Text("de \(ByteFormat.string(memory.total)) en uso").font(.caption).foregroundStyle(.secondary)
                         Spacer(minLength: 4)
@@ -133,7 +136,7 @@ struct DashboardView: View {
                 Image(systemName: "sparkles").foregroundStyle(.white).font(.title3.bold())
             }
             VStack(alignment: .leading, spacing: 4) {
-                Text(junkSummaryTitle).font(.headline)
+                Text(junkSummaryTitle).font(.headline).foregroundStyle(junkSummaryColor)
                 if junk.phase == .done { Text("Lista para revisar").font(.caption).foregroundStyle(.secondary) }
             }
             Spacer()
@@ -151,6 +154,36 @@ struct DashboardView: View {
 
     private var junkSummaryTitle: String {
         junk.phase == .done ? "\(ByteFormat.string(junk.totalFound)) de basura encontrada" : "Analiza tu Mac para encontrar archivos innecesarios"
+    }
+
+    private var diskValueColor: Color {
+        guard let disk = stats.disk, disk.total > 0 else { return .primary }
+        let fraction = Double(disk.free) / Double(disk.total)
+        return adaptiveHealthColor(HealthAssessor.disk(freeFraction: fraction, freeBytes: disk.free))
+    }
+
+    private var memoryValueColor: Color {
+        guard let memory = stats.memory else { return .primary }
+        return adaptiveHealthColor(memoryHealth(memory))
+    }
+
+    private func memoryHealth(_ memory: MemoryStats) -> HealthLevel {
+        guard memory.total > 0 else { return .critical }
+        let available = max(0, memory.total - memory.used)
+        return HealthAssessor.memory(availableFraction: Double(available) / Double(memory.total))
+    }
+
+    private var junkSummaryColor: Color {
+        guard junk.phase == .done else { return .primary }
+        return adaptiveHealthColor(HealthAssessor.junk(bytes: junk.totalFound))
+    }
+
+    private func adaptiveHealthColor(_ level: HealthLevel) -> Color {
+        switch level {
+        case .good: return .green
+        case .warning: return .orange
+        case .critical: return .red
+        }
     }
 }
 

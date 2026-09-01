@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard SnapshotMode.directory == nil,
@@ -10,6 +11,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .first(where: { $0.processIdentifier != currentProcess }) else { return }
         existing.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
         NSApp.terminate(nil)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication,
+                                       hasVisibleWindows flag: Bool) -> Bool {
+        NSApp.activate(ignoringOtherApps: true)
+        if let visibleWindow = NSApp.keyWindow.flatMap({ $0.isVisible && $0.styleMask.contains(.titled) ? $0 : nil })
+            ?? NSApp.windows.first(where: { $0.isVisible && $0.styleMask.contains(.titled) }) {
+            if visibleWindow.isMiniaturized { visibleWindow.deminiaturize(nil) }
+            visibleWindow.makeKeyAndOrderFront(nil)
+            return true
+        }
+
+        AppState.current?.openMainWindow?()
+        if let titledWindow = NSApp.windows.first(where: { $0.styleMask.contains(.titled) }) {
+            if titledWindow.isMiniaturized { titledWindow.deminiaturize(nil) }
+            titledWindow.makeKeyAndOrderFront(nil)
+        }
+        return true
     }
 }
 
@@ -38,13 +57,18 @@ enum AppSection: String, CaseIterable, Identifiable {
 
 @MainActor
 final class AppState: ObservableObject {
+    static private(set) weak var current: AppState?
+
     @Published var section: AppSection = .dashboard
+    var openMainWindow: (() -> Void)?
     let stats = StatsModel()
     let junk = JunkModel()
     let largeFiles = LargeFilesModel()
     let apps = AppsModel()
     let trash = TrashModel()
     let menuBar = MenuBarModel()
+
+    init() { Self.current = self }
 }
 
 @main
@@ -65,6 +89,7 @@ struct MyCleanUpApp: App {
 
 struct ContentView: View {
     @ObservedObject var appState: AppState
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         NavigationSplitView {
@@ -73,6 +98,10 @@ struct ContentView: View {
             detail
         }
         .frame(minWidth: 1040, minHeight: 640)
+        .onAppear {
+            let action = openWindow
+            appState.openMainWindow = { action(id: "main") }
+        }
         .task { await SnapshotDriver.runIfNeeded(appState) }
     }
 

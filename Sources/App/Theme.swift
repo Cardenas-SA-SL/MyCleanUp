@@ -6,6 +6,14 @@ enum Theme {
     static let gradient = LinearGradient(colors: [accent, blue], startPoint: .topLeading, endPoint: .bottomTrailing)
 }
 
+func healthColor(_ level: HealthLevel) -> Color {
+    switch level {
+    case .good: return Color(red: 123.0 / 255.0, green: 227.0 / 255.0, blue: 166.0 / 255.0)
+    case .warning: return Color(red: 1, green: 201.0 / 255.0, blue: 120.0 / 255.0)
+    case .critical: return Color(red: 1, green: 138.0 / 255.0, blue: 128.0 / 255.0)
+    }
+}
+
 private struct CardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content

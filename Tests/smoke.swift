@@ -144,6 +144,35 @@ do {
     check(thermalDuration < 2 && cpuTemperatureIsSane && batteryTemperatureIsSane,
           "temperaturas (cpu: \(cpuTemperatureText), batería: \(batteryTemperatureText))")
 
+    let gb: Int64 = 1_073_741_824
+    check(HealthAssessor.disk(freeFraction: 0.05, freeBytes: 100 * gb) == .critical,
+          "salud de disco crítica")
+    check(HealthAssessor.disk(freeFraction: 0.15, freeBytes: 100 * gb) == .warning,
+          "salud de disco en advertencia")
+    check(HealthAssessor.disk(freeFraction: 0.30, freeBytes: 100 * gb) == .good,
+          "salud de disco buena")
+    check(HealthAssessor.memory(availableFraction: 0.05) == .critical, "salud de memoria crítica")
+    check(HealthAssessor.memory(availableFraction: 0.20) == .warning, "salud de memoria en advertencia")
+    check(HealthAssessor.memory(availableFraction: 0.40) == .good, "salud de memoria buena")
+    check(HealthAssessor.battery(percent: 15, isCharging: false) == .critical,
+          "salud de batería crítica")
+    check(HealthAssessor.battery(percent: 30, isCharging: false) == .warning,
+          "salud de batería en advertencia")
+    check(HealthAssessor.battery(percent: 15, isCharging: true) == .good,
+          "salud de batería buena al cargar")
+    check(HealthAssessor.cpuLoad(0.90) == .critical, "carga de CPU crítica")
+    check(HealthAssessor.cpuLoad(0.70) == .warning, "carga de CPU en advertencia")
+    check(HealthAssessor.cpuLoad(0.40) == .good, "carga de CPU buena")
+    check(HealthAssessor.cpuTemperature(90) == .critical, "temperatura de CPU crítica")
+    check(HealthAssessor.cpuTemperature(75) == .warning, "temperatura de CPU en advertencia")
+    check(HealthAssessor.cpuTemperature(60) == .good, "temperatura de CPU buena")
+    check(HealthAssessor.batteryTemperature(45) == .critical, "temperatura de batería crítica")
+    check(HealthAssessor.batteryTemperature(40) == .warning, "temperatura de batería en advertencia")
+    check(HealthAssessor.batteryTemperature(30) == .good, "temperatura de batería buena")
+    check(HealthAssessor.junk(bytes: 6 * gb) == .critical, "basura crítica")
+    check(HealthAssessor.junk(bytes: 2 * gb) == .warning, "basura en advertencia")
+    check(HealthAssessor.junk(bytes: gb / 2) == .good, "basura en nivel bueno")
+
     check((SystemStats.disk()?.total ?? 0) > 0, "estadísticas de disco")
     check(SystemStats.memory().used > 0, "estadísticas de memoria")
 } catch {

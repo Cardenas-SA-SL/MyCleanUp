@@ -65,7 +65,7 @@ struct MenuBarView: View {
     private var diskCard: some View {
         MenuStatCard(title: "Disco", icon: "internaldrive.fill", minimumHeight: 142) {
             Text(model.disk.map { "\(ByteFormat.string($0.free)) libres" } ?? "N/D")
-                .font(.headline).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.8)
+                .font(.headline).foregroundStyle(diskValueColor).lineLimit(1).minimumScaleFactor(0.8)
             Text(model.disk.map { "de \(ByteFormat.string($0.total))" } ?? "Capacidad no disponible")
                 .font(.caption).foregroundStyle(.white.opacity(0.68)).lineLimit(1)
             Spacer(minLength: 8)
@@ -79,11 +79,11 @@ struct MenuBarView: View {
     private var memoryCard: some View {
         MenuStatCard(title: "Memoria", icon: "memorychip.fill", minimumHeight: 142) {
             Text("\(ByteFormat.string(model.memoryAvailable)) disponibles")
-                .font(.headline).foregroundStyle(.white).lineLimit(1).minimumScaleFactor(0.78)
+                .font(.headline).foregroundStyle(healthColor(memoryHealth)).lineLimit(1).minimumScaleFactor(0.78)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule().fill(.white.opacity(0.16))
-                    Capsule().fill(.white.opacity(0.9))
+                    Capsule().fill(healthColor(memoryHealth))
                         .frame(width: proxy.size.width * memoryUsedFraction)
                 }
             }.frame(height: 5)
@@ -112,8 +112,9 @@ struct MenuBarView: View {
 
     private var batteryCard: some View {
         MenuStatCard(title: "Batería", icon: "battery.75", minimumHeight: 112) {
-            Text("\(model.battery.percent) %").font(.headline).foregroundStyle(.white).monospacedDigit()
-            Text(batteryCaption).font(.caption).foregroundStyle(.white.opacity(0.68)).lineLimit(1)
+            Text("\(model.battery.percent) %").font(.headline)
+                .foregroundStyle(healthColor(batteryHealth)).monospacedDigit()
+            Text(batteryCaption).font(.caption).foregroundStyle(batteryCaptionColor).lineLimit(1)
             Spacer(minLength: 0)
         }
     }
@@ -121,9 +122,9 @@ struct MenuBarView: View {
     private var cpuCard: some View {
         MenuStatCard(title: "CPU", icon: "cpu", minimumHeight: 112) {
             Text("Carga: \(Int((model.cpuLoad * 100).rounded())) %")
-                .font(.headline).foregroundStyle(.white).monospacedDigit()
+                .font(.headline).foregroundStyle(healthColor(cpuLoadHealth)).monospacedDigit()
             Text(cpuCaption)
-                .font(.caption).foregroundStyle(.white.opacity(0.68))
+                .font(.caption).foregroundStyle(cpuCaptionColor)
             Spacer(minLength: 0)
         }
     }
@@ -143,7 +144,7 @@ struct MenuBarView: View {
                 Button(action: openJunk) {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles").foregroundStyle(.white)
-                        Text(footerText).font(.callout.weight(.medium)).foregroundStyle(.white).lineLimit(1)
+                        Text(footerText).font(.callout.weight(.medium)).foregroundStyle(footerTextColor).lineLimit(1)
                     }.contentShape(Rectangle())
                 }.buttonStyle(.plain)
                 Spacer()
@@ -162,6 +163,44 @@ struct MenuBarView: View {
     private var memoryUsedFraction: Double {
         guard model.memory.total > 0 else { return 0 }
         return min(1, max(0, Double(model.memory.used) / Double(model.memory.total)))
+    }
+
+    private var diskValueColor: Color {
+        guard let disk = model.disk, disk.total > 0 else { return .white }
+        let fraction = Double(disk.free) / Double(disk.total)
+        return healthColor(HealthAssessor.disk(freeFraction: fraction, freeBytes: disk.free))
+    }
+
+    private var memoryHealth: HealthLevel {
+        guard model.memory.total > 0 else { return .critical }
+        let fraction = Double(model.memoryAvailable) / Double(model.memory.total)
+        return HealthAssessor.memory(availableFraction: fraction)
+    }
+
+    private var batteryHealth: HealthLevel {
+        HealthAssessor.battery(percent: model.battery.percent, isCharging: model.battery.isCharging)
+    }
+
+    private var cpuLoadHealth: HealthLevel {
+        HealthAssessor.cpuLoad(model.cpuLoad)
+    }
+
+    private var batteryCaptionColor: Color {
+        guard let temperature = model.temperatures.batteryCelsius else { return .white.opacity(0.68) }
+        let level = HealthAssessor.batteryTemperature(temperature)
+        return level == .good ? .white.opacity(0.68) : healthColor(level)
+    }
+
+    private var cpuCaptionColor: Color {
+        guard let temperature = model.temperatures.cpuCelsius else { return .white.opacity(0.68) }
+        let level = HealthAssessor.cpuTemperature(temperature)
+        return level == .good ? .white.opacity(0.68) : healthColor(level)
+    }
+
+    private var footerTextColor: Color {
+        guard junk.phase == .done else { return .white }
+        let level = HealthAssessor.junk(bytes: junk.totalFound)
+        return level == .good ? .white : healthColor(level)
     }
 
     private var batteryCaption: String {
@@ -201,7 +240,8 @@ struct MenuBarView: View {
 
     private func openMain(section: AppSection, scanIfIdle: Bool) {
         appState.section = section
-        openWindow(id: "main")
+        if let openMainWindow = appState.openMainWindow { openMainWindow() }
+        else { openWindow(id: "main") }
         NSApp.activate(ignoringOtherApps: true)
         if scanIfIdle, appState.junk.phase == .idle { appState.junk.scan() }
     }
