@@ -255,12 +255,14 @@ final class MenuBarModel: ObservableObject {
     @Published var cpuLoad: Double = 0
     @Published var netUp: Int64 = 0
     @Published var netDown: Int64 = 0
+    @Published var temperatures = Temperatures(cpuCelsius: nil, batteryCelsius: nil)
     @Published var optimizerState: OptimizerState = .idle
 
     private let cpuSampler = CPULoadSampler()
     private let netSampler = NetRateSampler()
     private var refreshTimer: Timer?
     private var optimizerRunID: UUID?
+    private var thermalRefreshInFlight = false
 
     var coreCount: Int { cpuSampler.coreCount }
 
@@ -296,6 +298,17 @@ final class MenuBarModel: ObservableObject {
         let rates = netSampler.sample()
         netUp = rates.up
         netDown = rates.down
+        refreshTemperatures()
+    }
+
+    private func refreshTemperatures() {
+        guard !thermalRefreshInFlight else { return }
+        thermalRefreshInFlight = true
+        Task {
+            let latest = await Task.detached(priority: .utility) { ThermalStats.read() }.value
+            temperatures = latest
+            thermalRefreshInFlight = false
+        }
     }
 
     func optimize() {

@@ -134,6 +134,16 @@ do {
     let rates = netSampler.sample()
     check(rates.up >= 0 && rates.down >= 0, "muestreo de red")
 
+    let thermalStarted = Date()
+    let temperatures = ThermalStats.read()
+    let thermalDuration = Date().timeIntervalSince(thermalStarted)
+    let cpuTemperatureIsSane = temperatures.cpuCelsius.map { (1...125).contains($0) } ?? true
+    let batteryTemperatureIsSane = temperatures.batteryCelsius.map { (0...80).contains($0) } ?? true
+    let cpuTemperatureText = temperatures.cpuCelsius.map { String(format: "%.1f", $0) } ?? "n/d"
+    let batteryTemperatureText = temperatures.batteryCelsius.map { String(format: "%.1f", $0) } ?? "n/d"
+    check(thermalDuration < 2 && cpuTemperatureIsSane && batteryTemperatureIsSane,
+          "temperaturas (cpu: \(cpuTemperatureText), batería: \(batteryTemperatureText))")
+
     check((SystemStats.disk()?.total ?? 0) > 0, "estadísticas de disco")
     check(SystemStats.memory().used > 0, "estadísticas de memoria")
 } catch {

@@ -113,7 +113,7 @@ struct MenuBarView: View {
         MenuStatCard(title: "CPU", icon: "cpu", minimumHeight: 112) {
             Text("Carga: \(Int((model.cpuLoad * 100).rounded())) %")
                 .font(.headline).foregroundStyle(.white).monospacedDigit()
-            Text(pluralized(model.coreCount, "núcleo", "núcleos"))
+            Text(cpuCaption)
                 .font(.caption).foregroundStyle(.white.opacity(0.68))
             Spacer(minLength: 0)
         }
@@ -156,12 +156,23 @@ struct MenuBarView: View {
     }
 
     private var batteryCaption: String {
-        if model.battery.isCharging { return "Cargando" }
-        if model.battery.onACPower {
-            return model.battery.percent >= 100 ? "Cargada" : "Con corriente"
+        let status: String
+        if model.battery.isCharging { status = "Cargando" }
+        else if model.battery.onACPower {
+            status = model.battery.percent >= 100 ? "Cargada" : "Con corriente"
         }
-        guard let minutes = model.battery.minutesRemaining else { return "En batería" }
-        return "\(minutes / 60)h \(minutes % 60)m restantes"
+        else if let minutes = model.battery.minutesRemaining {
+            status = "\(minutes / 60)h \(minutes % 60)m restantes"
+        }
+        else { status = "En batería" }
+        guard let temperature = model.temperatures.batteryCelsius else { return status }
+        return "\(status) · \(Int(temperature.rounded())) °C"
+    }
+
+    private var cpuCaption: String {
+        let cores = pluralized(model.coreCount, "núcleo", "núcleos")
+        guard let temperature = model.temperatures.cpuCelsius else { return cores }
+        return "\(Int(temperature.rounded())) °C · \(cores)"
     }
 
     private var footerText: String {

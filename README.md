@@ -30,7 +30,7 @@ Utilidad nativa de macOS para limpiar y mantener tu Mac, al estilo CleanMyMac. H
 - **Archivos grandes**: busca archivos de más de 50 MB / 100 MB / 500 MB / 1 GB en tu carpeta de usuario y los mueve a la Papelera (reversible).
 - **Desinstalador**: lista las apps de `/Applications` y `~/Applications`, encuentra sus archivos residuales (Application Support, Caches, Preferences, Containers, LaunchAgents, etc.) y mueve todo a la Papelera.
 - **Papelera**: muestra tamaño y cantidad de elementos, y la vacía con confirmación.
-- **Barra de menús**: icono persistente con popover "Resumen del Mac": disco (con acceso a limpieza), memoria disponible con botón **Optimizar** (fuerza al kernel a soltar páginas inactivas, con topes de seguridad), batería, carga de CPU, velocidad de red y resumen de basura encontrada.
+- **Barra de menús**: icono persistente con popover "Resumen del Mac": disco (con acceso a limpieza), memoria disponible con botón **Optimizar** (fuerza al kernel a soltar páginas inactivas, solo cuando hay presión real y con topes de seguridad), batería con temperatura, carga y temperatura de CPU, velocidad de red y resumen de basura encontrada.
 
 ## Seguridad
 
@@ -68,7 +68,9 @@ Al analizar archivos grandes por primera vez, macOS puede pedir permiso para acc
 
 ## Alcance
 
-Sin módulo de malware/antivirus ni "protección" (fuera de alcance). Tampoco temperatura de CPU (requiere APIs privadas del SMC en Apple Silicon) ni test de velocidad de internet (la app es 100% local, sin red). El foco es limpieza de espacio, desinstalación completa de apps y el resumen de sistema de la barra de menús.
+Sin módulo de malware/antivirus ni "protección" (fuera de alcance) ni test de velocidad de internet (la app es 100% local, sin red). El foco es limpieza de espacio, desinstalación completa de apps y el resumen de sistema de la barra de menús.
+
+Nota sobre la temperatura de CPU: en Apple Silicon no hay API pública, así que se lee con la interfaz de sensores HID (`IOHIDEventSystemClient`) resuelta en tiempo de ejecución con `dlsym`, la misma que usan iStat Menus o Stats. Si alguna versión de macOS la cambia, la app muestra la tarjeta sin temperatura en vez de fallar. La temperatura de batería sí usa API pública (`AppleSmartBattery` en el registro de IOKit).
 
 ## Estructura
 
