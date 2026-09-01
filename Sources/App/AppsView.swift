@@ -54,6 +54,10 @@ private struct UninstallSheet: View {
             Divider()
             content
             Divider()
+            if model.permisoRequerido {
+                permissionPanel
+                Divider()
+            }
             footer
         }.frame(width: 560, height: 520)
         .alert("¿Desinstalar \(app.name)?", isPresented: $confirming) {
@@ -110,6 +114,37 @@ private struct UninstallSheet: View {
                 .buttonStyle(.borderedProminent).tint(.red)
                 .disabled(model.selectedAppRunning || model.uninstalling || model.loadingLeftovers)
         }.padding(20)
+    }
+
+    private var permissionPanel: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lock.shield.fill")
+                .font(.title2).foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 7) {
+                Text("macOS bloqueó la eliminación").font(.headline)
+                Text("Para desinstalar otras apps, macOS exige autorizar a MyCleanUp en Gestión de apps. Activa MyCleanUp y reintenta.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    Button("Abrir Ajustes") { openAppManagementSettings() }.buttonStyle(.bordered)
+                    Button("Reintentar") { model.confirmUninstall() }
+                        .buttonStyle(.borderedProminent).tint(.orange).disabled(model.uninstalling)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.11), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.orange.opacity(0.35)))
+        .padding(.horizontal, 20).padding(.vertical, 10)
+    }
+
+    private func openAppManagementSettings() {
+        let workspace = NSWorkspace.shared
+        if let appManagement = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"),
+           workspace.open(appManagement) { return }
+        if let privacy = URL(string: "x-apple.systempreferences:com.apple.preference.security") {
+            workspace.open(privacy)
+        }
     }
 
     private var totalSelected: Int64 {

@@ -51,7 +51,17 @@ do {
     try write(outside, megabytes: 1)
     let outsideItem = CleanableItem(url: outside, size: FileSizer.itemSize(at: outside), modified: nil)
     let refused = Remover.remove([outsideItem], mode: .permanent, allowedRoots: [allowed])
-    check(fm.fileExists(atPath: outside.path) && refused.failures.count == 1, "rechazo fuera de ruta")
+    check(fm.fileExists(atPath: outside.path) && refused.failures.count == 1 &&
+          refused.failures.first?.esPermiso == false, "rechazo fuera de ruta")
+
+    let permissionError = NSError(
+        domain: NSCocoaErrorDomain,
+        code: 513,
+        userInfo: [NSUnderlyingErrorKey: NSError(domain: NSPOSIXErrorDomain, code: 1)]
+    )
+    let genericError = NSError(domain: NSCocoaErrorDomain, code: 4)
+    check(RemovalErrorClassifier.isPermission(permissionError), "clasificación de error de permiso")
+    check(!RemovalErrorClassifier.isPermission(genericError), "clasificación de error genérico")
 
     let inside = allowed.appendingPathComponent("inside.bin")
     try write(inside, megabytes: 1)

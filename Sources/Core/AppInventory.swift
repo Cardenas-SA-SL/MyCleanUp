@@ -89,7 +89,11 @@ enum AppInventory {
             outcome.freedBytes += appSize
             outcome.removedCount += 1
         } catch {
-            outcome.failures.append((app.url.path, error.localizedDescription))
+            outcome.failures.append(CleanFailure(
+                path: app.url.path,
+                message: error.localizedDescription,
+                esPermiso: RemovalErrorClassifier.isPermission(error)
+            ))
         }
         return outcome
     }

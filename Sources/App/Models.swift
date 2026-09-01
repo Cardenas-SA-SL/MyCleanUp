@@ -124,6 +124,7 @@ final class AppsModel: ObservableObject {
     @Published var loadingLeftovers = false
     @Published var selectedAppRunning = false
     @Published var uninstalling = false
+    @Published var permisoRequerido = false
     @Published var lastOutcome: CleanOutcome?
     private var hasLoaded = false
 
@@ -151,6 +152,7 @@ final class AppsModel: ObservableObject {
         selectedApp = app
         leftovers = []
         leftoverSelection = []
+        permisoRequerido = false
         loadingLeftovers = true
         selectedAppRunning = AppInventory.isRunning(app)
         Task {
@@ -167,14 +169,17 @@ final class AppsModel: ObservableObject {
         guard let app = selectedApp, !selectedAppRunning else { return }
         let selected = leftovers.filter { leftoverSelection.contains($0.id) }
         let size = sizes[app.id] ?? FileSizer.itemSize(at: app.url)
+        permisoRequerido = false
         uninstalling = true
         Task {
             let outcome = await Task.detached(priority: .userInitiated) {
                 AppInventory.uninstall(app: app, appSize: size, removingLeftovers: selected)
             }.value
             lastOutcome = outcome
+            permisoRequerido = outcome.failures.contains(where: \.esPermiso)
             uninstalling = false
-            if !outcome.failures.contains(where: { $0.path == app.url.path }) {
+            if !permisoRequerido,
+               !outcome.failures.contains(where: { $0.path == app.url.path }) {
                 apps.removeAll { $0.id == app.id }
                 sizes.removeValue(forKey: app.id)
                 selectedApp = nil

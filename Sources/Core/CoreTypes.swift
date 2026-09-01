@@ -37,10 +37,16 @@ struct JunkCategory: Identifiable {
     var totalSize: Int64 { items.reduce(0) { $0 + $1.size } }
 }
 
+struct CleanFailure {
+    let path: String
+    let message: String
+    let esPermiso: Bool
+}
+
 struct CleanOutcome {
     var freedBytes: Int64 = 0
     var removedCount: Int = 0
-    var failures: [(path: String, message: String)] = []
+    var failures: [CleanFailure] = []
 }
 
 enum ByteFormat {

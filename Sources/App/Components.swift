@@ -96,9 +96,18 @@ struct OutcomeBanner: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 ForEach(Array(outcome.failures.enumerated()), id: \.offset) { _, failure in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(failure.path).font(.caption).lineLimit(2).truncationMode(.middle)
-                        Text(failure.message).font(.caption).foregroundStyle(.secondary)
+                    HStack(alignment: .top, spacing: 8) {
+                        if failure.esPermiso {
+                            Image(systemName: "lock.fill").foregroundStyle(.orange)
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(failure.path).font(.caption).lineLimit(2).truncationMode(.middle)
+                            Text(failure.message).font(.caption).foregroundStyle(.secondary)
+                            if failure.esPermiso {
+                                Text("Autoriza a MyCleanUp en Gestión de apps y reintenta.")
+                                    .font(.caption).foregroundStyle(.orange)
+                            }
+                        }
                     }
                 }
             }.padding(16)
