@@ -50,6 +50,15 @@ struct MenuBarView: View {
             }.frame(width: 22, height: 22)
             Text("Resumen del Mac").font(.headline.bold()).foregroundStyle(.white)
             Spacer()
+            Button { NSApp.terminate(nil) } label: {
+                Image(systemName: "power")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.75))
+                    .frame(width: 24, height: 24)
+                    .background(.white.opacity(0.06), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .help("Salir de MyCleanUp")
         }
     }
 

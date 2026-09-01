@@ -1,4 +1,17 @@
 import SwiftUI
+import AppKit
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        guard SnapshotMode.directory == nil,
+              let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
+        let currentProcess = ProcessInfo.processInfo.processIdentifier
+        guard let existing = NSRunningApplication.runningApplications(withBundleIdentifier: bundleIdentifier)
+            .first(where: { $0.processIdentifier != currentProcess }) else { return }
+        existing.activate(options: [.activateAllWindows, .activateIgnoringOtherApps])
+        NSApp.terminate(nil)
+    }
+}
 
 enum AppSection: String, CaseIterable, Identifiable {
     case dashboard, junk, largeFiles, apps, trash
@@ -36,6 +49,7 @@ final class AppState: ObservableObject {
 
 @main
 struct MyCleanUpApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState()
     var body: some Scene {
         WindowGroup(id: "main") { ContentView(appState: appState) }
